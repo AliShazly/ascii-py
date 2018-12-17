@@ -1,4 +1,3 @@
-import time
 import argparse
 import sys
 from PIL import Image
@@ -6,8 +5,8 @@ from termcolor import *
 import colorama
 colorama.init()
 
-chars_html = ['@', '#', 'S', '%', '?', '*', '+', ';', ':', ',', '.']
-chars = chars_html[::-1]
+chars_html = ['#', 'M', '&', '$', '%', '?', '*', '+', '|', ';', ':', ',', '.']
+chars = chars_html[::-1]  # Reverse colors when being printed white-on-black
 palette = (
     12, 12, 12,  # Gray
     197, 15, 31,  # Red
@@ -17,14 +16,14 @@ palette = (
     136, 23, 152,  # Magenta
     58, 150, 221,  # Cyan
     204, 204, 204  # White
-) + (0, 0, 0) * 248
+) + (0, 0, 0) * 248  # Filling the rest of the palette with black
 palette_colors = ['grey', 'red', 'green', 'yellow',
                   'blue', 'magenta', 'cyan', 'white', 'grey']
-palette_image = Image.new("P", (1, 1), 0)
+palette_image = Image.new('P', (1, 1), 0)
 palette_image.putpalette(palette)
 
 
-def main():
+def main(): # TODO: Make links work
     parser = argparse.ArgumentParser()
     mods = parser.add_mutually_exclusive_group()
     parser.add_argument('-r', '--resolution', type=int, default=100,
@@ -42,6 +41,7 @@ def main():
 
     resized = image_resize(im, args)
     ascii_pixels = '\n'.join(image_to_ascii_grayscale(resized, args))
+    # TODO: Don't print pixel by pixel
     if args.color:
         color_values = image_to_ascii_color(resized)
         x = 0
@@ -53,21 +53,28 @@ def main():
                 print(i, end='')
     else:
         if not args.html:
-            print(ascii_pixels, end = '')
+            print(ascii_pixels, end='')
         else:
-            with open('ascii.htm', 'w') as f:
-                f.write(f'<pre style="font: 10px/5px monospace;">\n{ascii_pixels}</pre>')
+            with open('ascii.htm', 'w') as outfile:
+                outfile.write(
+                    f'<pre style="font: 10px/5px monospace;">\n{ascii_pixels}</pre>')
             print('HTML Exported')
 
 
-def image_resize(image, args):
-    new_width = args.resolution
+def image_resize(image, args, width=None, height=None):
+    width = args.resolution
+    dim = None
     (old_width, old_height) = image.size
-    aspect_ratio = old_height/old_width
-    new_height = int(aspect_ratio * new_width)
-    new_dim = (new_width, new_height)
-    new_image = image.resize(new_dim)
-    return new_image
+    if width is None and height is None:
+        return image
+    if width is None:
+        aspect_ratio = height / float(old_height)
+        dim = (int(old_width * aspect_ratio), height)
+    else:
+        aspect_ratio = width / float(old_width)
+        dim = (width, int(old_height * aspect_ratio))
+    resized = image.resize(dim)
+    return resized
 
 
 def image_to_ascii_grayscale(image, args):
@@ -75,17 +82,20 @@ def image_to_ascii_grayscale(image, args):
     image = image.convert('L')
     grayscale_values = list(image.getdata())
     if not args.html:
-        ascii_pixels = ''.join(chars[i//25] for i in grayscale_values)
+        ascii_pixels = ''.join(chars[i//21] for i in grayscale_values)
     else:
-        ascii_pixels = ''.join(chars_html[i//25] for i in grayscale_values)
-    ascii_image = [ascii_pixels[i:i+resolution]for i in range(0, len(ascii_pixels), resolution)]
+        ascii_pixels = ''.join(chars_html[i//21] for i in grayscale_values)
+    ascii_image = [ascii_pixels[i:i+resolution]
+                   for i in range(0, len(ascii_pixels), resolution)]
     return ascii_image
 
 
 def image_to_ascii_color(image):
     image_dithered = image.convert('RGB').quantize(palette=palette_image)
     image_values = list(image_dithered.getdata())
-    color_values = [palette_colors[i] if i !='\n' else 'grey' for i in image_values] # Draws \n in grey
+    color_values = [palette_colors[i] if i !=
+                    '\n' else 'grey' for i in image_values]  # Draws \n in grey
+    image_dithered.show()
     return color_values
 
 

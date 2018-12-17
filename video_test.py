@@ -1,11 +1,10 @@
-from copy import deepcopy
 import sys
 from asciimatics.exceptions import ResizeScreenError
 from asciimatics.paths import Path
-from asciimatics.renderers import StaticRenderer, ColourImageFile, FigletText
+from asciimatics.renderers import StaticRenderer
 from asciimatics.scene import Scene
 from asciimatics.screen import Screen
-from asciimatics.effects import Print, Sprite, BannerText
+from asciimatics.effects import Print, Sprite
 import json
 
 class Video(Sprite):

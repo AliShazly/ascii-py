@@ -62,7 +62,8 @@ def display_terminal():
             print(i)
             time.sleep(1/fps)
 
-# TODO put this in a main() func
+# TODO: put this in a main() func
+# TODO: merge this with webcam
 parser = argparse.ArgumentParser()
 mods = parser.add_mutually_exclusive_group()
 parser.add_argument('-r', '--resolution', type=int, default=100,
