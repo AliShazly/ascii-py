@@ -3,9 +3,11 @@ import sys
 from PIL import Image
 from termcolor import *
 import colorama
+import requests
+from io import BytesIO
 colorama.init()
 
-chars_html = ['#', 'M', '&', '$', '%', '?', '*', '+', '|', ';', ':', ',', '.']
+chars_html = ['@', '#', 'S', '%', '?', '*', '+', ';', ':', ',', '.'] # TODO: Change char list
 chars = chars_html[::-1]  # Reverse colors when being printed white-on-black
 palette = (
     12, 12, 12,  # Gray
@@ -23,7 +25,7 @@ palette_image = Image.new('P', (1, 1), 0)
 palette_image.putpalette(palette)
 
 
-def main(): # TODO: Make links work
+def main():
     parser = argparse.ArgumentParser()
     mods = parser.add_mutually_exclusive_group()
     parser.add_argument('-r', '--resolution', type=int, default=100,
@@ -34,10 +36,18 @@ def main(): # TODO: Make links work
                       help='Print the output to the console in color (limited palette).')
     args = parser.parse_args(sys.argv[2:])
     try:
-        im = Image.open(sys.argv[1])
-    except FileNotFoundError as e:
-        sys.stderr.write(f'{e}: Did you forget the file extension?')
-        quit()
+        r = requests.get(sys.argv[1])
+        r.raise_for_status()
+        im = Image.open(BytesIO(r.content)).convert('RGBA')
+    except requests.exceptions.MissingSchema:
+        try:
+            im = Image.open(sys.argv[1])
+        except FileNotFoundError as e:
+            print(f'{e}: Did you forget the file extension?')
+            sys.exit()
+    except requests.exceptions.RequestException as e:
+        print(e)
+        sys.exit()
 
     resized = image_resize(im, args)
     ascii_pixels = '\n'.join(image_to_ascii_grayscale(resized, args))
@@ -60,7 +70,6 @@ def main(): # TODO: Make links work
                     f'<pre style="font: 10px/5px monospace;">\n{ascii_pixels}</pre>')
             print('HTML Exported')
 
-
 def image_resize(image, args, width=None, height=None):
     width = args.resolution
     dim = None
@@ -76,26 +85,23 @@ def image_resize(image, args, width=None, height=None):
     resized = image.resize(dim)
     return resized
 
-
 def image_to_ascii_grayscale(image, args):
     resolution = args.resolution
     image = image.convert('L')
     grayscale_values = list(image.getdata())
     if not args.html:
-        ascii_pixels = ''.join(chars[i//21] for i in grayscale_values)
+        ascii_pixels = ''.join(chars[i//25] for i in grayscale_values)
     else:
-        ascii_pixels = ''.join(chars_html[i//21] for i in grayscale_values)
+        ascii_pixels = ''.join(chars_html[i//25] for i in grayscale_values)
     ascii_image = [ascii_pixels[i:i+resolution]
                    for i in range(0, len(ascii_pixels), resolution)]
     return ascii_image
-
 
 def image_to_ascii_color(image):
     image_dithered = image.convert('RGB').quantize(palette=palette_image)
     image_values = list(image_dithered.getdata())
     color_values = [palette_colors[i] if i !=
                     '\n' else 'grey' for i in image_values]  # Draws \n in grey
-    image_dithered.show()
     return color_values
 
 

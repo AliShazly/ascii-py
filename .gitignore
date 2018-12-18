@@ -114,5 +114,6 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
+frame_list.json
 test.py
 .vscode/

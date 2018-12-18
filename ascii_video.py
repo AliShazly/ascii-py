@@ -7,7 +7,7 @@ import os
 import pafy
 import argparse
 
-chars = ['.', ',', ':', ';', '+', '*', '?', '%', 'S', '#', '@']
+chars = ['.', ',', ':', ';', '+', '*', '?', '%', 'S', '#', '@'] # TODO: Change char list
 
 def cv_to_pillow(image):
     img_RGB = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
@@ -57,23 +57,27 @@ def get_video_data(args):
         except FileNotFoundError as e:
             sys.stdout.write(f'ERROR: {e}')
             sys.exit()
-
     fps = cap.get(cv2.CAP_PROP_FPS)
     length = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
     iteration = 0
     while True:
         iteration +=1
-        print(f'Converting to ASCII, do not resize window... {int(iteration/length*100)}%', end = '\r')
         ret, frame = cap.read()
         if ret:
             pil_frame = cv_to_pillow(frame)
             resized, dim = image_resize(pil_frame, args, width=resolution)
             ascii_image = image_to_ascii_grayscale(resized, args)
-            frame_list.append('\n'.join(ascii_image))
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                cap.release()
-                cv2.destroyAllWindows()
-                return
+            # TODO: Probably make another function for this
+            if not args.realtime:
+                print(f'Converting to ASCII, do not resize window... {int(iteration/length*100)}%', end = '\r')
+                frame_list.append('\n'.join(ascii_image))
+                if cv2.waitKey(1) & 0xFF == ord('q'):
+                    cap.release()
+                    cv2.destroyAllWindows()
+                    return
+            else:
+                sys.stdout.write('\n'.join(ascii_image))
+                time.sleep(1/fps)
         else:
             os.system('cls' if os.name == 'nt' else 'clear')
             os.system(f'mode con: cols={dim[0]} lines={dim[1]}')
@@ -90,17 +94,19 @@ def display_terminal(args):
 
 def main(): 
     # TODO: Merge with webcam
-    # TODO: Add -r for realtime playing
+    # TODO: Add -rt for realtime playing
     parser = argparse.ArgumentParser()
-    mods = parser.add_mutually_exclusive_group()
+    inputs = parser.add_mutually_exclusive_group()
     parser.add_argument('-r', '--resolution', type=int, default=100,
                         help='Width to resize the image to, in pixels. Higher value means more detail.')
-    mods.add_argument('-y', '--youtube', type=str, default=None,
+    parser.add_argument('-rt', '--realtime', action='store_true',
+                        help='Get frame data and play video simultaneously. Will cause slowdown on larger resolutions')
+    inputs.add_argument('-y', '--youtube', type=str, default=None,
                       help='Use a youtube video as input')
-    mods.add_argument('-f', '--file', type=str, default=None,
+    inputs.add_argument('-f', '--file', type=str, default=None,
                       help='File to convert to ascii')
-    # mods.add_argument('-w', '--webcam', action='store_true',
-    #                   help='Use webcam as video input')
+    inputs.add_argument('-w', '--webcam', action='store_true',
+                      help='Use webcam as video input')
     args = parser.parse_args()
     display_terminal(args)
 
