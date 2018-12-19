@@ -37,8 +37,7 @@ def image_to_ascii_grayscale(image, args):
                    for i in range(0, len(ascii_pixels), resolution)]
     return ascii_image
 
-def get_video_data(args):
-    frame_list = []
+def get_input(args):
     if args.youtube:
         try:
             url = args.youtube[-11:]
@@ -63,10 +62,12 @@ def get_video_data(args):
                 raise FileNotFoundError(f'Webcam not found.')
         except FileNotFoundError as e:
             sys.stdout.write(f'ERROR: {e}')
-
     fps = cap.get(cv2.CAP_PROP_FPS)
-    if args.realtime or args.webcam:
-        return cap, fps
+    return cap,fps
+
+def get_video_data(args):
+    frame_list = []
+    cap, fps = get_input(args)
     length = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
     iteration = 0
     while True:
@@ -96,26 +97,24 @@ def display_terminal(args):
             sys.stdout.write(i)
             time.sleep(1/fps)
 
-# TODO: Maybe refactor some stuff, this function is just repeated code from get_video_data
 def display_realtime(args):
-    cap, fps = get_video_data(args)
+    cap, fps = get_input(args)
     while True:
         try:
             ret, frame = cap.read()
             pil_frame = cv_to_pillow(frame)
             resized, dim = image_resize(pil_frame, width=args.resolution)
+            ascii_image = image_to_ascii_grayscale(resized, args)
             frame_pos = int(cap.get(cv2.CAP_PROP_POS_FRAMES))
             # Only resizing the image on the first iteration of the loop
             if frame_pos <= 2:
                 os.system(f'mode con: cols={dim[0]} lines={dim[1]}')
-            ascii_image = image_to_ascii_grayscale(resized, args)
         except cv2.error:
-            cap, fps = get_video_data(args)
+            cap, fps = get_input(args)
         sys.stdout.write('\n'.join(ascii_image))
         time.sleep(1/fps)
 
 def main(): 
-    # TODO: Merge with webcam
     parser = argparse.ArgumentParser()
     inputs = parser.add_mutually_exclusive_group()
     parser.add_argument('-r', '--resolution', type=int, default=100,
