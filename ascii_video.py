@@ -14,7 +14,7 @@ def cv_to_pillow(image):
     pil_img = Image.fromarray(img_RGB)
     return pil_img
 
-def image_resize(image, args, width=None, height=None):
+def image_resize(image, width=None, height=None):
     dim = None
     (old_width, old_height) = image.size
     if width is None and height is None:
@@ -39,7 +39,6 @@ def image_to_ascii_grayscale(image, args):
 
 def get_video_data(args):
     frame_list = []
-    resolution = args.resolution
     if args.youtube:
         try:
             url = args.youtube[-11:]
@@ -57,27 +56,32 @@ def get_video_data(args):
         except FileNotFoundError as e:
             sys.stdout.write(f'ERROR: {e}')
             sys.exit()
+    elif args.webcam:
+        try:
+            cap = cv2.VideoCapture(0)
+            if cap.read() == (False, None):
+                raise FileNotFoundError(f'Webcam not found.')
+        except FileNotFoundError as e:
+            sys.stdout.write(f'ERROR: {e}')
+
     fps = cap.get(cv2.CAP_PROP_FPS)
+    if args.realtime or args.webcam:
+        return cap, fps
     length = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
     iteration = 0
     while True:
+        print(f'Converting to ASCII, do not resize window... {int(iteration/length*100)}%', end = '\r')
         iteration +=1
         ret, frame = cap.read()
         if ret:
             pil_frame = cv_to_pillow(frame)
-            resized, dim = image_resize(pil_frame, args, width=resolution)
+            resized, dim = image_resize(pil_frame, width=args.resolution)
             ascii_image = image_to_ascii_grayscale(resized, args)
-            # TODO: Probably make another function for this
-            if not args.realtime:
-                print(f'Converting to ASCII, do not resize window... {int(iteration/length*100)}%', end = '\r')
-                frame_list.append('\n'.join(ascii_image))
-                if cv2.waitKey(1) & 0xFF == ord('q'):
-                    cap.release()
-                    cv2.destroyAllWindows()
-                    return
-            else:
-                sys.stdout.write('\n'.join(ascii_image))
-                time.sleep(1/fps)
+            frame_list.append('\n'.join(ascii_image))
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                cap.release()
+                cv2.destroyAllWindows()
+                return
         else:
             os.system('cls' if os.name == 'nt' else 'clear')
             os.system(f'mode con: cols={dim[0]} lines={dim[1]}')
@@ -92,9 +96,26 @@ def display_terminal(args):
             sys.stdout.write(i)
             time.sleep(1/fps)
 
+# TODO: Maybe refactor some stuff, this function is just repeated code from get_video_data
+def display_realtime(args):
+    cap, fps = get_video_data(args)
+    while True:
+        try:
+            ret, frame = cap.read()
+            pil_frame = cv_to_pillow(frame)
+            resized, dim = image_resize(pil_frame, width=args.resolution)
+            frame_pos = int(cap.get(cv2.CAP_PROP_POS_FRAMES))
+            # Only resizing the image on the first iteration of the loop
+            if frame_pos <= 2:
+                os.system(f'mode con: cols={dim[0]} lines={dim[1]}')
+            ascii_image = image_to_ascii_grayscale(resized, args)
+        except cv2.error:
+            cap, fps = get_video_data(args)
+        sys.stdout.write('\n'.join(ascii_image))
+        time.sleep(1/fps)
+
 def main(): 
     # TODO: Merge with webcam
-    # TODO: Add -rt for realtime playing
     parser = argparse.ArgumentParser()
     inputs = parser.add_mutually_exclusive_group()
     parser.add_argument('-r', '--resolution', type=int, default=100,
@@ -108,7 +129,10 @@ def main():
     inputs.add_argument('-w', '--webcam', action='store_true',
                       help='Use webcam as video input')
     args = parser.parse_args()
-    display_terminal(args)
+    if args.realtime or args.webcam:
+        display_realtime(args)
+    else:
+        display_terminal(args)
 
 if __name__ == '__main__':
     main()
