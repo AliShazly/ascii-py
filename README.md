@@ -54,10 +54,10 @@ arguments:
 ![](https://github.com/AliShazly/ascii-py/blob/master/tests/img_output_01.png)
 
 ### ascii_video.py
-> $python ascii_video.py -file .\tests\vid_02.mp4 -realtime
+> $python ascii_video.py -file .\tests\vid.mp4 -realtime
 
 **Input:**
-`./tests/vid_02.mp4`
+`./tests/vid.mp4`
 
 **Output:**
 
