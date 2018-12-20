@@ -62,6 +62,7 @@ def get_input(args):
                 raise FileNotFoundError(f'Webcam not found.')
         except FileNotFoundError as e:
             sys.stdout.write(f'ERROR: {e}')
+            sys.exit()
     fps = cap.get(cv2.CAP_PROP_FPS)
     return cap,fps
 
@@ -105,14 +106,14 @@ def display_realtime(args):
             pil_frame = cv_to_pillow(frame)
             resized, dim = image_resize(pil_frame, width=args.resolution)
             ascii_image = image_to_ascii_grayscale(resized, args)
-            frame_pos = int(cap.get(cv2.CAP_PROP_POS_FRAMES))
             # Only resizing the image on the first iteration of the loop
+            frame_pos = int(cap.get(cv2.CAP_PROP_POS_FRAMES))
             if frame_pos <= 2:
                 os.system(f'mode con: cols={dim[0]} lines={dim[1]}')
+            sys.stdout.write('\n'.join(ascii_image))
+            time.sleep(1/fps)
         except cv2.error:
             cap, fps = get_input(args)
-        sys.stdout.write('\n'.join(ascii_image))
-        time.sleep(1/fps)
 
 def main(): 
     parser = argparse.ArgumentParser()
@@ -128,6 +129,7 @@ def main():
     inputs.add_argument('-w', '--webcam', action='store_true',
                       help='Use webcam as video input')
     args = parser.parse_args()
+
     if args.realtime or args.webcam:
         display_realtime(args)
     else:
