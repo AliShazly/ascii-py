@@ -47,11 +47,11 @@ arguments:
 
 **Input:**
 
-![Input](tests\img.png)
+![](https://github.com/AliShazly/ascii-py/blob/master/tests/img.png)
 
 **Output:**
 
-![Output](tests\img_output_01.png)
+![](https://github.com/AliShazly/ascii-py/blob/master/tests/img_output_01.png)
 
 ### ascii_video.py
 > $python ascii_video.py -file .\tests\vid_02.mp4 -realtime
@@ -61,4 +61,4 @@ arguments:
 
 **Output:**
 
-![Output](tests\vid_output_01.gif)
+![Output](https://github.com/AliShazly/ascii-py/blob/master/tests/vid_output_01.gif)
