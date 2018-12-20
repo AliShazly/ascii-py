@@ -7,7 +7,8 @@ import requests
 from io import BytesIO
 colorama.init()
 
-chars_html = ['@', '#', 'S', '%', '?', '*', '+', ';', ':', ',', '.'] # TODO: Change char list
+chars_html = ['@', '#', 'S', '%', '?', '*', '+',
+              ';', ':', ',', '.']  # TODO: Change char list
 chars = chars_html[::-1]  # Reverse colors when being printed white-on-black
 palette = (
     12, 12, 12,  # Gray
@@ -33,7 +34,9 @@ def main():
     mods.add_argument('--html', action='store_true',
                       help='Output an HTML file containing the result to the current directory.')
     mods.add_argument('-c', '--color', action='store_true',
-                      help='Print the output to the console in color (limited palette).')
+                      help='Print the ascii charecters to the console in color')
+    parser.add_argument('-b', '--background', action='store_true',
+                        help='Print the ascii charecters to the console with colored backgrounds')
     args = parser.parse_args(sys.argv[2:])
     try:
         r = requests.get(sys.argv[1])
@@ -52,12 +55,13 @@ def main():
     resized = image_resize(im, args)
     ascii_pixels = '\n'.join(image_to_ascii_grayscale(resized, args))
     # TODO: Don't print pixel by pixel
-    if args.color:
+    if args.color or args.background:
         color_values = image_to_ascii_color(resized)
         x = 0
         for i in ascii_pixels:
             if i != '\n':
-                cprint(i, color=color_values[x], on_color='on_grey', end='')
+                cprint(i, color=(color_values[x] if args.color else 'white'), on_color=(
+                    f'on_{color_values[x]}' if args.background else 'on_grey'), end='')
                 x += 1
             else:
                 print(i, end='')
@@ -72,8 +76,8 @@ def main():
 
 def image_resize(image, args, width=None, height=None):
     width = args.resolution
-    dim = None
     (old_width, old_height) = image.size
+    old_height = old_height//2 # Chars are drawn at a 2:1 height:width ratio
     if width is None and height is None:
         return image
     if width is None:
