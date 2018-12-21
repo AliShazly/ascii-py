@@ -25,59 +25,9 @@ palette_colors = ['grey', 'red', 'green', 'yellow',
 palette_image = Image.new('P', (1, 1), 0)
 palette_image.putpalette(palette)
 
-
-def main():
-    parser = argparse.ArgumentParser()
-    mods = parser.add_mutually_exclusive_group()
-    parser.add_argument('-r', '--resolution', type=int, default=100,
-                        help='Width to resize the image to, in pixels. Higher value means more detail. Default=100')
-    mods.add_argument('--html', action='store_true',
-                      help='Output an HTML file containing the result to the current directory.')
-    mods.add_argument('-c', '--color', action='store_true',
-                      help='Print the ascii charecters to the console in color')
-    parser.add_argument('-b', '--background', action='store_true',
-                        help='Print the ascii charecters to the console with colored backgrounds')
-    args = parser.parse_args(sys.argv[2:])
-    try:
-        r = requests.get(sys.argv[1])
-        r.raise_for_status()
-        im = Image.open(BytesIO(r.content)).convert('RGBA')
-    except requests.exceptions.MissingSchema:
-        try:
-            im = Image.open(sys.argv[1])
-        except FileNotFoundError as e:
-            print(f'{e}: Did you forget the file extension?')
-            sys.exit()
-    except requests.exceptions.RequestException as e:
-        print(e)
-        sys.exit()
-
-    resized = image_resize(im, args)
-    ascii_pixels = '\n'.join(image_to_ascii_grayscale(resized, args))
-    # TODO: Don't print pixel by pixel
-    if args.color or args.background:
-        color_values = image_to_ascii_color(resized)
-        x = 0
-        for i in ascii_pixels:
-            if i != '\n':
-                cprint(i, color=(color_values[x] if args.color else 'white'), on_color=(
-                    f'on_{color_values[x]}' if args.background else 'on_grey'), end='')
-                x += 1
-            else:
-                print(i, end='')
-    else:
-        if not args.html:
-            print(ascii_pixels, end='')
-        else:
-            with open('ascii.htm', 'w') as outfile:
-                outfile.write(
-                    f'<pre style="font: 10px/5px monospace;">\n{ascii_pixels}</pre>')
-            print('HTML Exported')
-
-def image_resize(image, args, width=None, height=None):
-    width = args.resolution
+def image_resize(image, width=None, height=None):
     (old_width, old_height) = image.size
-    old_height = old_height//2 # Chars are drawn at a 2:1 height:width ratio
+    old_height = old_height//2 # Chars are drawn at a 2:1 height:width ratio in the terminal
     if width is None and height is None:
         return image
     if width is None:
@@ -108,6 +58,53 @@ def image_to_ascii_color(image):
                     '\n' else 'grey' for i in image_values]  # Draws \n in grey
     return color_values
 
+def main():
+    parser = argparse.ArgumentParser()
+    mods = parser.add_mutually_exclusive_group()
+    parser.add_argument('-r', '--resolution', type=int, default=100,
+                        help='Width to resize the image to, in pixels. Higher value means more detail. Default=100')
+    mods.add_argument('--html', action='store_true',
+                      help='Output an HTML file containing the result to the current directory.')
+    mods.add_argument('-c', '--color', action='store_true',
+                      help='Print the ascii charecters to the console in color')
+    parser.add_argument('-b', '--background', action='store_true',
+                        help='Print the ascii charecters to the console with colored backgrounds')
+    args = parser.parse_args(sys.argv[2:])
+    try:
+        r = requests.get(sys.argv[1])
+        r.raise_for_status()
+        im = Image.open(BytesIO(r.content)).convert('RGBA')
+    except requests.exceptions.MissingSchema:
+        try:
+            im = Image.open(sys.argv[1])
+        except FileNotFoundError as e:
+            print(f'{e}: Did you forget the file extension?')
+            sys.exit()
+    except requests.exceptions.RequestException as e:
+        print(e)
+        sys.exit()
+
+    resized = image_resize(im, width=args.resolution)
+    ascii_pixels = '\n'.join(image_to_ascii_grayscale(resized, args))
+    # TODO: Don't print pixel by pixel
+    if args.color or args.background:
+        color_values = image_to_ascii_color(resized)
+        x = 0
+        for i in ascii_pixels:
+            if i != '\n':
+                cprint(i, color=(color_values[x] if args.color else 'white'), on_color=(
+                    f'on_{color_values[x]}' if args.background else 'on_grey'), end='')
+                x += 1
+            else:
+                print(i, end='')
+    else:
+        if not args.html:
+            print(ascii_pixels, end='')
+        else:
+            with open('ascii.htm', 'w') as outfile:
+                outfile.write(
+                    f'<pre style="font: 10px/5px monospace;">\n{ascii_pixels}</pre>')
+            print('HTML Exported')
 
 if __name__ == '__main__':
     main()

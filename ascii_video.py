@@ -15,8 +15,8 @@ def cv_to_pillow(image):
     return pil_img
 
 def image_resize(image, width=None, height=None):
-    dim = None
     (old_width, old_height) = image.size
+    old_height = old_height//2 # Chars are drawn at a 2:1 height:width ratio in the terminal
     if width is None and height is None:
         return image
     if width is None:
