@@ -43,21 +43,29 @@ arguments:
 ## Examples
 
 ### ascii_image.py
-> $python ascii_image.py .\tests\img.png --color 
 
 **Input:**
 
 ![](https://github.com/AliShazly/ascii-py/blob/master/tests/img.png)
 
+> $python ascii_image.py .\tests\img.png --color 
+
 **Output:**
 
 ![](https://github.com/AliShazly/ascii-py/blob/master/tests/img_output_01.png)
 
+> $python ascii_image.py .\tests\img.png --color --background
+
+**Output:**
+
+![](https://github.com/AliShazly/ascii-py/blob/master/tests/img_output_02.png)
+
 ### ascii_video.py
-> $python ascii_video.py --file .\tests\vid.mp4 --realtime
 
 **Input:**
 `./tests/vid.mp4`
+
+> $python ascii_video.py --file .\tests\vid.mp4 --realtime
 
 **Output:**
 
