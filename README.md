@@ -48,22 +48,21 @@ arguments:
 
 ![](https://github.com/AliShazly/ascii-py/blob/master/tests/img.png)
 
-> $python ascii_image.py .\tests\img.png --color 
+> $python ascii_image.py .\tests\img.png --resolution 200 --color 
 
 **Output:**
 
 ![](https://github.com/AliShazly/ascii-py/blob/master/tests/img_output_01.png)
 
-> $python ascii_image.py .\tests\img.png --color --background
+> $python ascii_image.py .\tests\img.png --resolution 200 --color --background
 
 **Output:**
 
-![](https://github.com/AliShazly/ascii-py/blob/master/tests/img_output_02.png)
+![](https://github.com/AliShazly/ascii-py/blob/master/tests/img_output_02.PNG)
 
 ### ascii_video.py
 
 **Input:**
-`./tests/vid.mp4`
 
 > $python ascii_video.py --file .\tests\vid.mp4 --realtime
 
