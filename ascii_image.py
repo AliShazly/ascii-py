@@ -67,6 +67,8 @@ def main():
                       help='Output an HTML file containing the result to the current directory.')
     parser.add_argument('-j', '--json', action='store_true',
                         help='Output ASCII image and info to JSON. To be used for embedding in webpages.')
+    parser.add_argument('-rev', '--reverse', action='store_true',
+                        help='Reverses the char list to be printed black-on-white')
     mods.add_argument('-c', '--color', action='store_true',
                       help='Print the ascii charecters to the console in color')
     parser.add_argument('-b', '--background', action='store_true',
@@ -86,8 +88,9 @@ def main():
 
     resized = image_resize(img, width=args.resolution)
     width, height = resized.size
-    char_list = chars_html if args.html else chars
-    ascii_pixels = '\n'.join(image_to_ascii_grayscale(resized, args.resolution, char_list))
+    char_list = chars_html if args.html or args.reverse else chars
+    ascii_list = image_to_ascii_grayscale(resized, args.resolution, char_list)
+    ascii_pixels = '\n'.join(ascii_list)
 
     if args.json and (args.color or args.background):
         pixel_color_values = list(resized.getdata())
