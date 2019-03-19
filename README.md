@@ -15,6 +15,8 @@ usage: ascii_image.py [image_path] [-r RESOLUTION] [--html | -c] [-b]
 
 arguments:
   -h, --help            show this help message and exit
+  -f, --file            Specify an image file to turn into ASCII.
+  -u, --url             Specify an image URL to turn into ASCII.
   -r, --resolution      Width to resize the image to, in pixels. Higher value
                         means more detail. Default=100
   --html                Output an HTML file containing the result to the
@@ -48,13 +50,13 @@ arguments:
 
 ![](https://github.com/AliShazly/ascii-py/blob/master/tests/img.png)
 
-> $python ascii_image.py .\tests\img.png --resolution 200 --color 
+> $python ascii_image.py --file .\tests\img.png --resolution 200 --color 
 
 **Output:**
 
 ![](https://github.com/AliShazly/ascii-py/blob/master/tests/img_output_01.png)
 
-> $python ascii_image.py .\tests\img.png --resolution 200 --color --background
+> $python ascii_image.py --file .\tests\img.png --resolution 200 --color --background
 
 **Output:**
 
