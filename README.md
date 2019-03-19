@@ -11,7 +11,8 @@ Converts images or videos to ASCII in the terminal. Can take files, links, or us
 ### **ascii_image.py**
 
 ```
-usage: ascii_image.py [image_path] [-r RESOLUTION] [--html | -c] [-b]
+usage: ascii_image.py [-r RESOLUTION] [--html] [-c] [-b]
+                      [-f FILE | -u URL]
 
 arguments:
   -h, --help            show this help message and exit
