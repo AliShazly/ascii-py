@@ -5,6 +5,7 @@ import colorama
 import requests
 from io import BytesIO
 import json
+import random
 
 colorama.init()
 
@@ -65,8 +66,8 @@ def main():
                         help='Width to resize the image to, in pixels. Higher value means more detail. Default=100')
     mods.add_argument('--html', action='store_true',
                       help='Output an HTML file containing the result to the current directory.')
-    parser.add_argument('-j', '--json', action='store_true',
-                        help='Output ASCII image and info to JSON. To be used for embedding in webpages.')
+    parser.add_argument('-j', '--json', type=str,
+                        help='Specify filepath for JSON output. To be used for embedding in webpages.')
     parser.add_argument('-rev', '--reverse', action='store_true',
                         help='Reverses the char list to be printed black-on-white')
     mods.add_argument('-c', '--color', action='store_true',
@@ -86,11 +87,17 @@ def main():
     elif args.file:
         img = Image.open(args.file)
 
+    original_aspect_ratio = img.size[0] / img.size[1]
     resized = image_resize(img, width=args.resolution)
     width, height = resized.size
     char_list = chars_html if args.html or args.reverse else chars
     ascii_list = image_to_ascii_grayscale(resized, args.resolution, char_list)
     ascii_pixels = '\n'.join(ascii_list)
+
+    ascii_uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+    ascii_lowercase = 'abcdefghijklmnopqrstuvwxyz'
+    digits = '0123456789'
+    rand_string = ''.join(random.choices(ascii_uppercase + ascii_lowercase + digits, k=8))
 
     if args.json and (args.color or args.background):
         pixel_color_values = list(resized.getdata())
@@ -105,23 +112,25 @@ def main():
         values_dict = {
             'width': width,
             'height': height,
+            'aspect': original_aspect_ratio,
             'image': ascii_pixels,
             'pixel_values': reshaped
         }
-        with open('ascii_image.json', 'w') as outfile:
+        with open(f'{args.json}/ascii_image_{rand_string}.json', 'w+') as outfile:
             json.dump(values_dict, outfile)
-        print('JSON Exported')
+        print(f'{args.json}/ascii_image_{rand_string}.json')
         return
 
     elif args.json:
         values_dict = {
             'width': width,
             'height': height,
+            'aspect': original_aspect_ratio,
             'image': ascii_pixels
         }
-        with open('ascii_image.json', 'w') as outfile:
+        with open(f'{args.json}/ascii_image_{rand_string}.json', 'w+') as outfile:
             json.dump(values_dict, outfile)
-        print('JSON Exported')
+        print(f'{args.json}/ascii_image_{rand_string}.json')
         return
 
     if args.color or args.background:

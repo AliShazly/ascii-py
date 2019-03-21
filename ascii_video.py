@@ -6,6 +6,7 @@ import os
 import pafy
 import argparse
 import json
+import random
 
 from ascii_image import image_resize, image_to_ascii_grayscale
 
@@ -80,8 +81,8 @@ def main():
                         help='File to convert to ascii')
     inputs.add_argument('-w', '--webcam', action='store_true',
                         help='Use webcam as video input')
-    outputs.add_argument('-j', '--json', action='store_true',
-                         help='Output ASCII frame list and info to JSON. To be used for embedding in webpages.')
+    outputs.add_argument('-j', '--json', type=str,
+                         help='Specify filepath for JSON output. To be used for embedding in webpages')
     args = parser.parse_args()
 
     if args.youtube:
@@ -120,15 +121,20 @@ def main():
         display_realtime(cap, fps, args.resolution)
 
     elif args.json:
+        ascii_uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+        ascii_lowercase = 'abcdefghijklmnopqrstuvwxyz'
+        digits = '0123456789'
+        rand_string = ''.join(random.choices(ascii_uppercase + ascii_lowercase + digits, k=8))
+
         frame_list, width, height = get_video_data(cap, args.resolution)
         values_dict = {
             'width': width,
             'height': height,
             'frame_list': frame_list
         }
-        with open('ascii_video.json', 'w') as outfile:
+        with open(f'{args.json}/ascii_image_{rand_string}.json', 'w+') as outfile:
             json.dump(values_dict, outfile)
-        print('JSON Exported')
+        print(f'{args.json}/ascii_image_{rand_string}.json')
 
     else:
         frame_list, _, _ = get_video_data(cap, args.resolution)
