@@ -1,12 +1,12 @@
 # Ascii-py
 
-Converts images or videos to ASCII in the terminal. Can take files, links, or use webcam for image/video input. Color is currently only supported for images, I hope to bring it to videos soon.
-
+Converts images or videos to ASCII in the terminal. Can take files, links, or use webcam for image/video input.
 
 ## Usage
 
 ### Installation
-> $pip install -r requirements.txt
+
+> pip install -r requirements.txt
 
 ### **ascii_image.py**
 
@@ -47,28 +47,21 @@ arguments:
 
 ### ascii_image.py
 
-**Input:**
+> python ascii_image.py --file .\tests\img.png --resolution 200 --color
 
-![](https://github.com/AliShazly/ascii-py/blob/master/tests/img.png)
+![Output](https://github.com/AliShazly/ascii-py/blob/master/tests/img_output_01.png)
 
-> $python ascii_image.py --file .\tests\img.png --resolution 200 --color 
+> python ascii_image.py --file .\tests\img.png --resolution 200 --color --background
 
-**Output:**
-
-![](https://github.com/AliShazly/ascii-py/blob/master/tests/img_output_01.png)
-
-> $python ascii_image.py --file .\tests\img.png --resolution 200 --color --background
-
-**Output:**
-
-![](https://github.com/AliShazly/ascii-py/blob/master/tests/img_output_02.PNG)
+![Output](https://github.com/AliShazly/ascii-py/blob/master/tests/img_output_02.PNG)
 
 ### ascii_video.py
 
-**Input:**
-
-> $python ascii_video.py --file .\tests\vid.mp4 --realtime
-
-**Output:**
+> python ascii_video.py --file .\tests\vid.mp4 --realtime
 
 ![Output](https://github.com/AliShazly/ascii-py/blob/master/tests/vid_output_01.gif)
+
+## Limitations
+
+- Color palette is limited to  due to 8 colors due to Windows terminal limitations
+- Color only works on images, planning to bring to videos soon
