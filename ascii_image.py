@@ -1,3 +1,5 @@
+#! /usr/bin/env python3
+
 import argparse
 from PIL import Image
 from termcolor import *
@@ -6,31 +8,32 @@ import requests
 from io import BytesIO
 import json
 import random
+import string
+import platform
 
 colorama.init()
 
-chars_html = ['@', '#', 'S', '%', '?', '*', '+',
-              ';', ':', ',', '.']  # TODO: Change char list
-chars = chars_html[::-1]  # Reverse colors when being printed white-on-black
-palette = (
-              12, 12, 12,  # Gray
-              197, 15, 31,  # Red
-              19, 161, 14,  # Green
-              193, 156, 0,  # Yellow
-              0, 55, 218,  # Blue
-              136, 23, 152,  # Magenta
-              58, 150, 221,  # Cyan
-              204, 204, 204  # White
-          ) + (0, 0, 0) * 248  # Filling the rest of the palette with black
-palette_colors = ['grey', 'red', 'green', 'yellow',
+CHARS = ['.', ',', ':', ';', '+', '*', '?', '%', 'S', '#', '@']
+PALETTE = (
+    12, 12, 12,  # Gray
+    197, 15, 31,  # Red
+    19, 161, 14,  # Green
+    193, 156, 0,  # Yellow
+    0, 55, 218,  # Blue
+    136, 23, 152,  # Magenta
+    58, 150, 221,  # Cyan
+    204, 204, 204  # White
+) + (0, 0, 0) * 248  # Filling the rest of the palette with black
+PALETTE_COLORS = ['grey', 'red', 'green', 'yellow',
                   'blue', 'magenta', 'cyan', 'white', 'grey']
-palette_image = Image.new('P', (1, 1), 0)
-palette_image.putpalette(palette)
+PALETTE_IMAGE = Image.new('P', (1, 1), 0)
+PALETTE_IMAGE.putpalette(PALETTE)
 
 
 def image_resize(image, width=None, height=None):
     (old_width, old_height) = image.size
-    old_height = old_height // 2  # Chars are drawn at a 2:1 height:width ratio in the terminal
+    # Chars are drawn at a 2:1 height:width ratio in the terminal
+    old_height = old_height // 2
     if width is None and height is None:
         return image
     if width is None:
@@ -43,19 +46,105 @@ def image_resize(image, width=None, height=None):
     return resized
 
 
-def image_to_ascii_grayscale(image, resolution, char_list):
+def image_to_ascii_greyscale(image, resolution, char_list):
     image = image.convert('L')
-    grayscale_values = list(image.getdata())
-    ascii_pixels = ''.join(char_list[i // 25] for i in grayscale_values)
-    ascii_image = [ascii_pixels[i:i + resolution] for i in range(0, len(ascii_pixels), resolution)]
+    greyscale_values = list(image.getdata())
+    ascii_pixels = ''.join(char_list[i // 25] for i in greyscale_values)
+    ascii_image = [ascii_pixels[i:i + resolution]
+                   for i in range(0, len(ascii_pixels), resolution)]
     return ascii_image
 
 
 def image_to_ascii_color(image):
-    image_dithered = image.convert('RGB').quantize(palette=palette_image)
+    image_dithered = image.convert('RGB').quantize(palette=PALETTE_IMAGE)
     image_values = list(image_dithered.getdata())
-    color_values = [palette_colors[i] for i in image_values]
+    color_values = [PALETTE_COLORS[i] for i in image_values]
     return color_values
+
+
+# https://stackoverflow.com/a/26665998
+def rgb_to_ansi_escape(r, g, b):
+    if r == g and g == b:
+        if r < 8:
+            return 16
+        if r > 248:
+            return 231
+        return round(((r - 8) / 247) * 24) + 232
+
+    ansi = 16 + (36 * round(r / 255 * 5)) + \
+        (6 * round(g / 255 * 5)) + round(b / 255 * 5)
+    return ansi
+
+
+def supports_256_color():
+    if platform.system() in ("Linux", "Darwin"):
+        import curses
+        curses.setupterm()
+        if curses.tigetnum("colors") >= 256:
+            return True
+    return False
+
+
+def print_image(img, resolution, greyscale=False, bg_color=False, fg_color=True):
+    if greyscale:
+        bg_color = False
+        fg_color = False
+
+    original_aspect_ratio = img.size[0] / img.size[1]
+    img = image_resize(img, width=resolution)
+    ascii_list = image_to_ascii_greyscale(img, resolution, CHARS)
+    ascii_pixels = '\n'.join(ascii_list)
+    _256_color = supports_256_color()
+
+    if _256_color:
+        color_values = list(img.getdata())
+    else:
+        color_values = image_to_ascii_color(img)
+
+    idx = 0  # Can't use enumerate because newline chars need to be ingnored
+    for i in ascii_pixels:
+        if i != '\n':
+            if _256_color:
+                color = rgb_to_ansi_escape(*color_values[idx])
+                print(
+                    f"\033[48;5;{color if bg_color else 0};38;5;{color if fg_color else 256}m{i}\033[0;00m", end='')
+                idx += 1
+            else:
+                cprint(i, color=(color_values[idx] if fg_color else 'white'),
+                       on_color=(
+                           f'on_{color_values[idx]}' if bg_color else 'on_grey'),
+                       end='')
+                idx += 1
+        else:
+            print(i, end='')
+    print('')
+
+
+def get_image_from_url(url):
+    r = requests.get(args.url)
+    r.raise_for_status()
+    img = Image.open(BytesIO(r.content)).convert('RGB')
+    return img
+
+
+def export_json(filepath, img, resolution):
+    original_aspect_ratio = img.size[0] / img.size[1]
+    resized = image_resize(img, width=resolution)
+    width, height = resized.size
+    ascii_list = image_to_ascii_greyscale(resized, resolution, CHARS)
+    ascii_pixels = '\n'.join(ascii_list)
+
+    values_dict = {
+        'width': width,
+        'height': height,
+        'aspect': original_aspect_ratio,
+        'image': ascii_pixels
+    }
+    rand_string = ''.join(random.choices(
+        string.ascii_uppercase + string.ascii_lowercase + string.digits, k=8))
+    with open(f'{filepath}/ascii_image_{rand_string}.json', 'w+') as outfile:
+        json.dump(values_dict, outfile)
+    print(f'{filepath}/ascii_image_{rand_string}.json exported.')
 
 
 def main():
@@ -64,12 +153,8 @@ def main():
     inputs = parser.add_mutually_exclusive_group()
     parser.add_argument('-r', '--resolution', type=int, default=100,
                         help='Width to resize the image to, in pixels. Higher value means more detail. Default=100')
-    mods.add_argument('--html', action='store_true',
-                      help='Output an HTML file containing the result to the current directory.')
     parser.add_argument('-j', '--json', type=str,
                         help='Specify filepath for JSON output. To be used for embedding in webpages.')
-    parser.add_argument('-rev', '--reverse', action='store_true',
-                        help='Reverses the char list to be printed black-on-white')
     mods.add_argument('-c', '--color', action='store_true',
                       help='Print the ascii charecters to the console in color')
     parser.add_argument('-b', '--background', action='store_true',
@@ -81,77 +166,19 @@ def main():
     args = parser.parse_args()
 
     if args.url:
-        r = requests.get(args.url)
-        r.raise_for_status()
-        img = Image.open(BytesIO(r.content)).convert('RGB')
+        img = get_image_from_url(args.url)
     elif args.file:
         img = Image.open(args.file)
-
-    original_aspect_ratio = img.size[0] / img.size[1]
-    resized = image_resize(img, width=args.resolution)
-    width, height = resized.size
-    char_list = chars_html if args.html or args.reverse else chars
-    ascii_list = image_to_ascii_grayscale(resized, args.resolution, char_list)
-    ascii_pixels = '\n'.join(ascii_list)
-
-    ascii_uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-    ascii_lowercase = 'abcdefghijklmnopqrstuvwxyz'
-    digits = '0123456789'
-    rand_string = ''.join(random.choices(ascii_uppercase + ascii_lowercase + digits, k=8))
-
-    if args.json and (args.color or args.background):
-        pixel_color_values = list(resized.getdata())
-        reshaped = []
-        idx = 0
-        for i in ascii_pixels:
-            if i != '\n':
-                reshaped.append(pixel_color_values[idx])
-                idx += 1
-            else:
-                reshaped.append((0, 0, 0))
-        values_dict = {
-            'width': width,
-            'height': height,
-            'aspect': original_aspect_ratio,
-            'image': ascii_pixels,
-            'pixel_values': reshaped
-        }
-        with open(f'{args.json}/ascii_image_{rand_string}.json', 'w+') as outfile:
-            json.dump(values_dict, outfile)
-        print(f'{args.json}/ascii_image_{rand_string}.json')
-        return
-
-    elif args.json:
-        values_dict = {
-            'width': width,
-            'height': height,
-            'aspect': original_aspect_ratio,
-            'image': ascii_pixels
-        }
-        with open(f'{args.json}/ascii_image_{rand_string}.json', 'w+') as outfile:
-            json.dump(values_dict, outfile)
-        print(f'{args.json}/ascii_image_{rand_string}.json')
-        return
-
-    if args.color or args.background:
-        color_values = image_to_ascii_color(resized)
-        idx = 0  # Can't use enumerate because newline chars need to be ingnored
-        for i in ascii_pixels:
-            if i != '\n':
-                cprint(i, color=(color_values[idx] if args.color else 'white'),
-                       on_color=(f'on_{color_values[idx]}' if args.background else 'on_grey'),
-                       end='')
-                idx += 1
-            else:
-                print(i, end='')
     else:
-        if args.html:
-            with open('ascii.htm', 'w') as outfile:
-                outfile.write(f'<pre style="font: 10px/5px monospace;">\n{ascii_pixels}</pre>')
-            print('HTML Exported')
+        raise ValueError("Must provide image input")
 
-        else:
-            print(ascii_pixels, end='')
+    if args.json:
+        export_json(args.json, img, args.resolution)
+    else:
+        foreground = True if args.color else False
+        background = True if args.background else False
+        greyscale = False if foreground or background else True
+        print_image(img, args.resolution, greyscale, background, foreground)
 
 
 if __name__ == '__main__':
